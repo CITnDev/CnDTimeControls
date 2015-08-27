@@ -141,6 +141,13 @@ namespace CnDTimeControls
         {
             var ctrl = (CnDTimeInput)d;
             var dateTime = (DateTime)e.NewValue;
+
+            if (dateTime == DateTime.MinValue || dateTime == DateTime.MaxValue)
+            {
+                ctrl._partTime.MaskProvider.Set(ctrl._partTime.Mask.DefaultValue);
+                return;
+            }
+
             if (ctrl._partTime != null && !ctrl._internalSet)
             {
                 if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local))
@@ -172,7 +179,7 @@ namespace CnDTimeControls
             if (!ctrl._internalSet)
             {
 
-                if (newValue.Kind == DateTimeKind.Unspecified)
+                if (newValue.Kind == DateTimeKind.Unspecified && newValue != DateTime.MinValue && newValue != DateTime.MaxValue)
                     throw new ArgumentException("DateTimeKind must be Local or Utc");
 
                 ctrl._lastSetDateTimeKind = newValue.Kind;

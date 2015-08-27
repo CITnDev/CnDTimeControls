@@ -20,7 +20,7 @@ namespace CnDTimeControls
     {
         private static readonly string[] InputCharacters = {"0"};
         private volatile bool _isSelectionChanging;
-        private readonly CnDTimeInputMask _mask;
+        internal readonly CnDTimeInputMask Mask;
         private readonly List<Key> _exceptionKeys = new List<Key>();
 
         #region WPF Control metadata
@@ -45,9 +45,9 @@ namespace CnDTimeControls
 
         public CnDTimeInputTextBox()
         {
-            _mask = new CnDTimeInputMaskTimeWithMilliseconds();
-            MaskProvider = new MaskedTextProvider(_mask.Mask);
-            MaskProvider.Set(_mask.DefaultValue);
+            Mask = new CnDTimeInputMaskTimeWithMilliseconds();
+            MaskProvider = new MaskedTextProvider(Mask.Mask);
+            MaskProvider.Set(Mask.DefaultValue);
             RefreshText();
         }
 
@@ -195,7 +195,7 @@ namespace CnDTimeControls
 
         private bool IsValidKey(Key key)
         {
-            if (_mask.Mask.Substring(SelectionStart, 1) == "0")
+            if (Mask.Mask.Substring(SelectionStart, 1) == "0")
             {
                 if (key == Key.NumPad0 || key == Key.NumPad1 || key == Key.NumPad2 || key == Key.NumPad3 || key == Key.NumPad4 || key == Key.NumPad5 || key == Key.NumPad6 || key == Key.NumPad7 || key == Key.NumPad8 || key == Key.NumPad9)
                     return true;
@@ -214,10 +214,10 @@ namespace CnDTimeControls
         private int GetNextCharacterPosition(int position)
         {
             var newPosition = position+1;
-            while (newPosition < _mask.Mask.Length && !InputCharacters.Any(_ => _ == _mask.Mask.Substring(newPosition, 1)))
+            while (newPosition < Mask.Mask.Length && !InputCharacters.Any(_ => _ == Mask.Mask.Substring(newPosition, 1)))
                 newPosition++;
 
-            if (newPosition >= _mask.Mask.Length)
+            if (newPosition >= Mask.Mask.Length)
                 newPosition = SelectionStart;
 
             return newPosition;
@@ -226,7 +226,7 @@ namespace CnDTimeControls
         private int GetPreviousCharacterPosition(int position)
         {
             var newPosition = position-1;
-            while (newPosition >= 0 && !InputCharacters.Any(_ => _ == _mask.Mask.Substring(newPosition, 1)))
+            while (newPosition >= 0 && !InputCharacters.Any(_ => _ == Mask.Mask.Substring(newPosition, 1)))
                 newPosition--;
 
             if (newPosition < 0)
@@ -282,9 +282,9 @@ namespace CnDTimeControls
             set
             {
                 SetValue(SelectedTimeProperty, value);
-                if (MaskProvider != null && _mask != null)
+                if (MaskProvider != null && Mask != null)
                 {
-                    MaskProvider.Set(value.ToString(_mask.ProviderValueFormat));
+                    MaskProvider.Set(value.ToString(Mask.ProviderValueFormat));
                     RefreshText();
                 }
             }

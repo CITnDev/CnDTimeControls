@@ -49,7 +49,8 @@ namespace CnDTimeLineSample
 
         public VM()
         {
-            MyDate = new DateTime(2015,10,25,0,0,0,DateTimeKind.Utc);
+            MyDate = DateTime.MaxValue;
+            //MyDate = new DateTime(2015,10,25,0,0,0,DateTimeKind.Utc);
             //MyDate = new DateTime(2015, 10, 25, 2, 30, 0, DateTimeKind.Local);
         }
 
