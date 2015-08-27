@@ -95,8 +95,8 @@ namespace CnDTimeControls
                 validInput = MaskProvider.VerifyChar(e.Text[0], SelectionStart, out hint);
                 if (validInput)
                 {
-
-                    var charArray = MaskProvider.ToDisplayString().ToCharArray();
+                    var initialString = MaskProvider.ToDisplayString();
+                    var charArray = initialString.ToCharArray();
                     charArray[SelectionStart] = e.Text[0];
                     var verifyString = new string(charArray);
 
@@ -104,7 +104,23 @@ namespace CnDTimeControls
                     if (TimeSpan.TryParse(verifyString, CultureInfo.CurrentCulture, out ts))
                         MaskProvider.Replace(e.Text, SelectionStart);
                     else
-                        validInput = false;
+                    {
+                        // Case 08:00:00 => 28:00:00 => 20:00:00
+                        if (SelectionStart + 1 < charArray.Length)
+                        {
+                            charArray[SelectionStart + 1] = '0';
+                            verifyString = new string(charArray);
+                            if (TimeSpan.TryParse(verifyString, CultureInfo.CurrentCulture, out ts))
+                            {
+                                MaskProvider.Replace(e.Text, SelectionStart);
+                                MaskProvider.Replace('0', SelectionStart+1);
+                            }
+                            else
+                                validInput = false;
+                        }
+                        else
+                            validInput = false;
+                    }
                 }
             }
             base.OnPreviewTextInput(e);
