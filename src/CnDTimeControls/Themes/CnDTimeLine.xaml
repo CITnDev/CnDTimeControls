@@ -1,0 +1,43 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:cnDTimeControls="clr-namespace:CnDTimeControls"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    mc:Ignorable="d"
+                    >
+    <Style TargetType="cnDTimeControls:CnDTimeLine">
+        <Style.Setters>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="cnDTimeControls:CnDTimeLine">
+                        <Grid Background="{TemplateBinding Background}">
+                            <!--<ItemsControl Background="{TemplateBinding Background}" />-->
+                            <ItemsControl ItemsSource="{TemplateBinding TimeBand}" Foreground="{TemplateBinding Foreground}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                            <Canvas />
+                                    </ItemsPanelTemplate>                                    
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style>
+                                        <Setter Property="Canvas.Left" Value="{Binding Left}" d:DataContext="{d:DesignInstance cnDTimeControls:TimeBandItem}"/>
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type cnDTimeControls:TimeBandItem}">
+                                        <StackPanel>
+                                            <Rectangle Fill="Black" Height="10" Width="2" HorizontalAlignment="Center" />
+                                            <TextBlock Text="{Binding DateTime, StringFormat='{}{0:T}'}" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Rectangle HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="1" Fill="Black" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="MinHeight" Value="30"/>
+        </Style.Setters>
+    </Style>
+</ResourceDictionary>

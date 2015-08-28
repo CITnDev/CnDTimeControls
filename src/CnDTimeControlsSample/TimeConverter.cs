@@ -85,8 +85,6 @@ namespace CnDTimeLineSample
             var d = (DateTime)value;
             var utc = d.ToUniversalTime();
 
-            Console.WriteLine("UTC Converter : " + d + " => " + utc);
-
             return System.Convert.ChangeType(utc, targetType, culture);
         }
 
