@@ -17,7 +17,7 @@ namespace CnDTimeControls
     {
         private CnDTimeInputTextBox _partTime;
         private volatile bool _internalSet;
-        private volatile DateTimeKind _lastSetDateTimeKind;
+        private volatile DateTimeKind _lastSetDateTimeKind = DateTimeKind.Utc;
 
         static CnDTimeInput()
         {
@@ -257,7 +257,16 @@ namespace CnDTimeControls
 
         #region IsDaylight dependency property
 
-        public static DependencyProperty IsDaylightProperty = DependencyProperty.Register("IsDaylight", typeof(bool), typeof(CnDTimeInput), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsDaylightChanged));
+        public static DependencyProperty IsDaylightProperty = DependencyProperty.Register("IsDaylight", typeof(bool), typeof(CnDTimeInput), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsDaylightChanged, OnCoerceIsDayLight));
+
+        private static object OnCoerceIsDayLight(DependencyObject d, object basevalue)
+        {
+            var ctrl = (CnDTimeInput) d;
+            if ((ctrl.SelectedDateTime == DateTime.MinValue || ctrl.SelectedDateTime == DateTime.MaxValue) && !ctrl._internalSet)
+                return ctrl.IsDaylight;
+            
+            return basevalue;
+        }
 
         private static void OnIsDaylightChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
