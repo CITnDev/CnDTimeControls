@@ -211,6 +211,9 @@ namespace CnDTimeControls
 
         private bool IsValidKey(Key key)
         {
+            if (Mask.Mask.Length == SelectionStart)
+                return false;
+
             if (Mask.Mask.Substring(SelectionStart, 1) == "0")
             {
                 if (key == Key.NumPad0 || key == Key.NumPad1 || key == Key.NumPad2 || key == Key.NumPad3 || key == Key.NumPad4 || key == Key.NumPad5 || key == Key.NumPad6 || key == Key.NumPad7 || key == Key.NumPad8 || key == Key.NumPad9)
