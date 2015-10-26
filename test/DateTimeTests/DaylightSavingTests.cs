@@ -138,9 +138,9 @@ namespace DateTimeTests
             var dateTime = new DateTime(2015, 10, 25, 0, 30, 0, DateTimeKind.Utc);
             var timeInput = new CnDTimeInput();
             timeInput.SelectedDateTime = dateTime.ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(true));
             timeInput.SelectedDateTime = dateTime.AddHours(1).ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(false));
         }
 
 
@@ -150,9 +150,9 @@ namespace DateTimeTests
             var dateTime = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
             var timeInput = new CnDTimeInput();
             timeInput.SelectedDateTime = dateTime.ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(false));
             timeInput.SelectedDateTime = dateTime.AddHours(-1).ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(true));
         }
 
         [Test, RequiresSTA]
@@ -161,11 +161,11 @@ namespace DateTimeTests
             var dateTime = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
             var timeInput = new CnDTimeInput();
             timeInput.SelectedDateTime = dateTime.ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(false));
             timeInput.SelectedDateTime = dateTime.AddHours(-1).ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(true));
             timeInput.SelectedDateTime = dateTime.ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(false));
         }
 
         [Test, RequiresSTA]
@@ -174,8 +174,8 @@ namespace DateTimeTests
             var dateTime = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
             var timeInput = new CnDTimeInput();
             timeInput.SelectedDateTime = dateTime.ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
-            timeInput.IsDaylight = true;
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(false));
+            timeInput.IsSummerPeriod = true;
             Assert.That(timeInput.SelectedDateTime, Is.EqualTo(dateTime.AddHours(-1).ToLocalTime()));
         }
 
@@ -185,8 +185,8 @@ namespace DateTimeTests
             var dateTime = new DateTime(2015, 10, 25, 0, 30, 0, DateTimeKind.Utc);
             var timeInput = new CnDTimeInput();
             timeInput.SelectedDateTime = dateTime.ToLocalTime();
-            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
-            timeInput.IsDaylight = false;
+            Assert.That(timeInput.IsSummerPeriod, Is.EqualTo(true));
+            timeInput.IsSummerPeriod = false;
             Assert.That(timeInput.SelectedDateTime, Is.EqualTo(dateTime.AddHours(1).ToLocalTime()));
         }
     }

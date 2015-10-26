@@ -82,7 +82,7 @@ namespace CnDTimeControls
                 {
                     if (TimeZone.SupportsDaylightSavingTime && TimeZone.IsAmbiguousTime(dateTime))
                     {
-                        if (IsDaylight)
+                        if (IsSummerPeriod)
                             dateTime = CurrentDate.ToUniversalTime().Add(value).ToLocalTime();
                         else
                             dateTime = CurrentDate.ToUniversalTime().Add(value).Add(dayLightDelta).ToLocalTime();
@@ -92,7 +92,7 @@ namespace CnDTimeControls
                 {
                     if (TimeZone.SupportsDaylightSavingTime && TimeZone.IsAmbiguousTime(dateTime))
                     {
-                        if (IsDaylight)
+                        if (IsSummerPeriod)
                             dateTime = CurrentDate.ToUniversalTime().Add(value);
                         else
                             dateTime = CurrentDate.ToUniversalTime().Add(value).Add(dayLightDelta);
@@ -187,9 +187,9 @@ namespace CnDTimeControls
 
             ctrl._internalSet = true;
             if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Utc)
-                ctrl.IsDaylight = ctrl.TimeZone.IsDaylightSavingTime(newValue.ToLocalTime());
+                ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue.ToLocalTime());
             if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Local)
-                ctrl.IsDaylight = ctrl.TimeZone.IsDaylightSavingTime(newValue);
+                ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue);
             ctrl._internalSet = false;
 
             return baseValue;
@@ -255,39 +255,39 @@ namespace CnDTimeControls
 
         #endregion
 
-        #region IsDaylight dependency property
+        #region IsSummerPeriod dependency property
 
-        public static DependencyProperty IsDaylightProperty = DependencyProperty.Register("IsDaylight", typeof(bool), typeof(CnDTimeInput), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsDaylightChanged, OnCoerceIsDayLight));
+        public static DependencyProperty IsSummerPeriodProperty = DependencyProperty.Register("IsSummerPeriod", typeof(bool), typeof(CnDTimeInput), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsSummerPeriodChanged, OnCoerceIsSummerPeriod));
 
-        private static object OnCoerceIsDayLight(DependencyObject d, object basevalue)
+        private static object OnCoerceIsSummerPeriod(DependencyObject d, object basevalue)
         {
             var ctrl = (CnDTimeInput) d;
             if ((ctrl.SelectedDateTime == DateTime.MinValue || ctrl.SelectedDateTime == DateTime.MaxValue) && !ctrl._internalSet)
-                return ctrl.IsDaylight;
+                return ctrl.IsSummerPeriod;
             
             return basevalue;
         }
 
-        private static void OnIsDaylightChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnIsSummerPeriodChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var ctrl = (CnDTimeInput)d;
             if (ctrl._partTime != null && !ctrl._internalSet)
                 ctrl.OnTimeChanged(ctrl._partTime.SelectedTime);
         }
 
-        [Description("IsDaylight")]
+        [Description("IsSummerPeriod")]
         [Category("CnDTimeInput Category")]
         [Browsable(true)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-        public bool IsDaylight
+        public bool IsSummerPeriod
         {
             get
             {
-                return ((bool)(GetValue(IsDaylightProperty)));
+                return ((bool)(GetValue(IsSummerPeriodProperty)));
             }
             set
             {
-                SetValue(IsDaylightProperty, value);
+                SetValue(IsSummerPeriodProperty, value);
             }
         }
 
