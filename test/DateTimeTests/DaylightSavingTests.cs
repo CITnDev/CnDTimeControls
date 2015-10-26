@@ -1,4 +1,5 @@
 ﻿using System;
+using CnDTimeControls;
 using NUnit.Framework;
 
 namespace DateTimeTests
@@ -129,6 +130,64 @@ namespace DateTimeTests
             Assert.That(tzi.IsDaylightSavingTime(localTimeAfterDST), Is.EqualTo(true));
 
             Assert.That(localTimeBeforeDST == localTimeAfterDST, Is.EqualTo(true));
+        }
+
+        [Test, RequiresSTA]
+        public void ChangeDSTFromSummerToWinterWithAddOneHour()
+        {
+            var dateTime = new DateTime(2015, 10, 25, 0, 30, 0, DateTimeKind.Utc);
+            var timeInput = new CnDTimeInput();
+            timeInput.SelectedDateTime = dateTime.ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
+            timeInput.SelectedDateTime = dateTime.AddHours(1).ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+        }
+
+
+        [Test, RequiresSTA]
+        public void ChangeDSTFromWinterToSummerWithRemoveOneHour()
+        {
+            var dateTime = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
+            var timeInput = new CnDTimeInput();
+            timeInput.SelectedDateTime = dateTime.ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+            timeInput.SelectedDateTime = dateTime.AddHours(-1).ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
+        }
+
+        [Test, RequiresSTA]
+        public void ChangeDSTFromWinterToSummerToWinter()
+        {
+            var dateTime = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
+            var timeInput = new CnDTimeInput();
+            timeInput.SelectedDateTime = dateTime.ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+            timeInput.SelectedDateTime = dateTime.AddHours(-1).ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
+            timeInput.SelectedDateTime = dateTime.ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+        }
+
+        [Test, RequiresSTA]
+        public void ChangeDSTFromWinterToSummerWithDaylightChange()
+        {
+            var dateTime = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
+            var timeInput = new CnDTimeInput();
+            timeInput.SelectedDateTime = dateTime.ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(false));
+            timeInput.IsDaylight = true;
+            Assert.That(timeInput.SelectedDateTime, Is.EqualTo(dateTime.AddHours(-1).ToLocalTime()));
+        }
+
+        [Test, RequiresSTA]
+        public void ChangeDSTFromSummerToWinterWithDaylightChange()
+        {
+            var dateTime = new DateTime(2015, 10, 25, 0, 30, 0, DateTimeKind.Utc);
+            var timeInput = new CnDTimeInput();
+            timeInput.SelectedDateTime = dateTime.ToLocalTime();
+            Assert.That(timeInput.IsDaylight, Is.EqualTo(true));
+            timeInput.IsDaylight = false;
+            Assert.That(timeInput.SelectedDateTime, Is.EqualTo(dateTime.AddHours(1).ToLocalTime()));
         }
     }
 }
