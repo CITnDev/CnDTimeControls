@@ -101,7 +101,7 @@ namespace CnDTimeControls
             }
             else
             {
-                dateTime = CurrentDate.Add(value);
+                dateTime = ComputeNewDateTime(value);
             }
 
             _internalSet = true;
