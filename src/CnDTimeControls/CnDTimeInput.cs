@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -69,45 +71,75 @@ namespace CnDTimeControls
 
         #endregion
 
-        private void OnTimeChanged(TimeSpan value)
+        internal void OnTimeChanged(TimeSpan value)
         {
             DateTime dateTime;
 
-            // If there is a timeZone and the SelectedDateTime was in Local kind, set SelectedDateTime with a local convertion
-            if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local))
-            {
-                var dayLightDelta = TimeZoneInfo.Local.GetAdjustmentRules()[0].DaylightDelta;
-                dateTime = ComputeNewDateTime(value);
-                if (_lastSetDateTimeKind == DateTimeKind.Local)
-                {
-                    if (TimeZone.SupportsDaylightSavingTime && TimeZone.IsAmbiguousTime(dateTime))
-                    {
-                        if (IsSummerPeriod)
-                            dateTime = CurrentDate.ToUniversalTime().Add(value).ToLocalTime();
-                        else
-                            dateTime = CurrentDate.ToUniversalTime().Add(value).Add(dayLightDelta).ToLocalTime();
-                    }
-                }
-                else
-                {
-                    if (TimeZone.SupportsDaylightSavingTime && TimeZone.IsAmbiguousTime(dateTime))
-                    {
-                        if (IsSummerPeriod)
-                            dateTime = CurrentDate.ToUniversalTime().Add(value);
-                        else
-                            dateTime = CurrentDate.ToUniversalTime().Add(value).Add(dayLightDelta);
-                    }
-                }
-            }
+
+            if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local) && _lastSetDateTimeKind == DateTimeKind.Local)
+                dateTime = ComputeDateTimeTimeZoneLocalDateLocal(value);
+            else if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local) && _lastSetDateTimeKind == DateTimeKind.Utc)
+                dateTime = ComputeDateTimeTimeZoneLocalDateUtc(value);
             else
             {
-                dateTime = ComputeNewDateTime(value);
+                throw new NotImplementedException("Only a TimeZone set to Local works for the moment.");
             }
-
             _internalSet = true;
             SelectedDateTime = dateTime;
+            if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local))
+            {
+                if (dateTime.Kind == DateTimeKind.Utc)
+                    IsSummerPeriod = TimeZone.IsDaylightSavingTime(dateTime.ToLocalTime());
+                else
+                    IsSummerPeriod = TimeZone.IsDaylightSavingTime(dateTime);
+            }
             _internalSet = false;
         }
+
+        private DateTime ComputeDateTimeTimeZoneLocalDateLocal(TimeSpan value)
+        {
+            if (CurrentDate.Kind != DateTimeKind.Local)
+                throw new Exception("Invalid CurrentDate DateTimeKind : must be Local");
+
+            var baseUtcOffset = TimeZone.BaseUtcOffset;
+
+            var dateTime = ComputeNewDateTime(value);
+            if (TimeZone.SupportsDaylightSavingTime && TimeZone.IsAmbiguousTime(dateTime))
+            {
+                if (IsSummerPeriod)
+                    return new DateTime(dateTime.AddTicks(-baseUtcOffset.Ticks).AddTicks(-TimeZone.GetAdjustmentRules()[0].DaylightDelta.Ticks).Ticks, DateTimeKind.Utc).ToLocalTime();
+
+                return new DateTime(dateTime.AddTicks(-baseUtcOffset.Ticks).Ticks, DateTimeKind.Utc).ToLocalTime();
+            }
+
+            return dateTime;
+        }
+
+        private DateTime ComputeDateTimeTimeZoneLocalDateUtc(TimeSpan value)
+        {
+            if (CurrentDate.Kind != DateTimeKind.Local)
+                throw new Exception("Invalid CurrentDate DateTimeKind : must be Local");
+
+            var baseUtcOffset = TimeZone.BaseUtcOffset;
+
+            var dateTime = ComputeNewDateTime(value);
+            if (TimeZone.SupportsDaylightSavingTime)
+            {
+
+                if (TimeZone.IsAmbiguousTime(dateTime))
+                {
+                    if (IsSummerPeriod)
+                        return new DateTime(dateTime.AddTicks(-baseUtcOffset.Ticks).AddTicks(-TimeZone.GetAdjustmentRules()[0].DaylightDelta.Ticks).Ticks, DateTimeKind.Utc);
+
+                    return new DateTime(dateTime.AddTicks(-baseUtcOffset.Ticks).Ticks, DateTimeKind.Utc);
+                }
+
+                IsSummerPeriod = TimeZone.IsDaylightSavingTime(dateTime);
+            }
+
+            return dateTime.ToUniversalTime();
+        }
+
 
         protected virtual DateTime ComputeNewDateTime(TimeSpan value)
         {
@@ -183,14 +215,12 @@ namespace CnDTimeControls
                     throw new ArgumentException("DateTimeKind must be Local or Utc");
 
                 ctrl._lastSetDateTimeKind = newValue.Kind;
-            }
 
-            ctrl._internalSet = true;
-            if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Utc)
-                ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue.ToLocalTime());
-            if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Local)
-                ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue);
-            ctrl._internalSet = false;
+                if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Utc)
+                    ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue.ToLocalTime());
+                if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Local)
+                    ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue);
+            }
 
             return baseValue;
         }
@@ -261,10 +291,10 @@ namespace CnDTimeControls
 
         private static object OnCoerceIsSummerPeriod(DependencyObject d, object basevalue)
         {
-            var ctrl = (CnDTimeInput) d;
+            var ctrl = (CnDTimeInput)d;
             if ((ctrl.SelectedDateTime == DateTime.MinValue || ctrl.SelectedDateTime == DateTime.MaxValue) && !ctrl._internalSet)
                 return ctrl.IsSummerPeriod;
-            
+
             return basevalue;
         }
 
@@ -351,6 +381,31 @@ namespace CnDTimeControls
         {
             PropertyChangedEventHandler handler = PropertyChanged;
             if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    internal static class DateTimeExtension
+    {
+        public static DateTime ToSpecificUniversalTime(this DateTime value, bool isSummerPeriod)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+                throw new Exception("Value must be of local or unspecified kind");
+
+            if (!TimeZoneInfo.Local.SupportsDaylightSavingTime)
+                return value.ToUniversalTime();
+
+            var baseUtcOffset = TimeZoneInfo.Local.BaseUtcOffset;
+
+            var dateTime = new DateTime(value.AddTicks(-baseUtcOffset.Ticks).Ticks, DateTimeKind.Utc);
+
+            if (isSummerPeriod)
+            {
+                var dayLightDelta = TimeZoneInfo.Local.GetAdjustmentRules()[0].DaylightDelta;
+
+                dateTime = new DateTime(dateTime.AddTicks(-dayLightDelta.Ticks).Ticks, DateTimeKind.Utc);
+            }
+
+            return dateTime;
         }
     }
 }

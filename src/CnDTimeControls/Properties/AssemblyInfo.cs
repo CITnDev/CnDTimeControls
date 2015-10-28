@@ -40,6 +40,9 @@ using System.Windows;
                                       // app, or any theme specific resource dictionaries)
 )]
 
+#if DEBUG
+[assembly: InternalsVisibleTo("DateTimeTests")]
+#endif
 
 // Version information for an assembly consists of the following four values:
 //

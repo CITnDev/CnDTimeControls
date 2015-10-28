@@ -100,38 +100,6 @@ namespace DateTimeTests
             Assert.That(_tzi.IsAmbiguousTime(localAmbiguousTimeEnd), Is.EqualTo(true));
         }
 
-        [Test]
-        public void InAmbiguousTimeLocalTimesAreEqual()
-        {
-            var utcJustBeforeDST = new DateTime(2015, 10, 25, 0, 30, 0, DateTimeKind.Utc);
-            var utcJustAfterDST = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
-
-
-            var localJustBeforeDST = TimeZoneInfo.ConvertTimeFromUtc(utcJustBeforeDST, _tzi);
-            var localJustAfterDST = TimeZoneInfo.ConvertTimeFromUtc(utcJustAfterDST, _tzi);
-            
-            Assert.That(localJustBeforeDST == localJustAfterDST, Is.EqualTo(true));
-            Assert.That(localJustBeforeDST.ToUniversalTime() == localJustAfterDST.ToUniversalTime(), Is.EqualTo(false));
-        }
-
-
-        [Test]
-        public void France_DST2015EndLocalTimeAreEqualsBeforeAndAfterDST()
-        {
-            var utcTimeBeforeDST = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
-            var utcTimeAfterDST = new DateTime(2015, 10, 25, 1, 30, 0, DateTimeKind.Utc);
-            TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time");
-
-
-            var localTimeBeforeDST = TimeZoneInfo.ConvertTimeFromUtc(utcTimeBeforeDST, tzi);
-            var localTimeAfterDST = TimeZoneInfo.ConvertTimeFromUtc(utcTimeAfterDST, tzi);
-
-            Assert.That(tzi.IsDaylightSavingTime(localTimeBeforeDST), Is.EqualTo(true));
-            Assert.That(tzi.IsDaylightSavingTime(localTimeAfterDST), Is.EqualTo(true));
-
-            Assert.That(localTimeBeforeDST == localTimeAfterDST, Is.EqualTo(true));
-        }
-
         [Test, RequiresSTA]
         public void ChangeDSTFromSummerToWinterWithAddOneHour()
         {
