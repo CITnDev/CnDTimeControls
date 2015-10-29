@@ -287,7 +287,8 @@ namespace CnDTimeControls
 
         #region IsSummerPeriod dependency property
 
-        public static DependencyProperty IsSummerPeriodProperty = DependencyProperty.Register("IsSummerPeriod", typeof(bool), typeof(CnDTimeInput), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsSummerPeriodChanged, OnCoerceIsSummerPeriod));
+        public static DependencyProperty IsSummerPeriodProperty = DependencyProperty.Register("IsSummerPeriod", typeof(bool), typeof(CnDTimeInput), 
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnIsSummerPeriodChanged, OnCoerceIsSummerPeriod));
 
         private static object OnCoerceIsSummerPeriod(DependencyObject d, object basevalue)
         {
