@@ -215,6 +215,7 @@ namespace CnDTimeControls
                     throw new ArgumentException("DateTimeKind must be Local or Utc");
 
                 ctrl._lastSetDateTimeKind = newValue.Kind;
+                ctrl.CurrentDate = newValue.Date;
 
                 if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Utc)
                     ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue.ToLocalTime());
