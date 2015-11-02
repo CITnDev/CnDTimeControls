@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using CnDTimeControls.Properties;
 
 namespace CnDTimeControls
@@ -18,7 +19,8 @@ namespace CnDTimeControls
     public class CnDTimeInput : Control, INotifyPropertyChanged
     {
         private CnDTimeInputTextBox _partTime;
-        private volatile bool _internalSet;
+        private volatile bool _internalSetDateTime;
+        private volatile bool _internalSetIsSummerPeriod;
         private volatile DateTimeKind _lastSetDateTimeKind = DateTimeKind.Utc;
 
         static CnDTimeInput()
@@ -74,26 +76,35 @@ namespace CnDTimeControls
         internal void OnTimeChanged(TimeSpan value)
         {
             DateTime dateTime;
+            _internalSetDateTime = true;
+            _internalSetIsSummerPeriod = true;
 
-
-            if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local) && _lastSetDateTimeKind == DateTimeKind.Local)
-                dateTime = ComputeDateTimeTimeZoneLocalDateLocal(value);
-            else if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local) && _lastSetDateTimeKind == DateTimeKind.Utc)
-                dateTime = ComputeDateTimeTimeZoneLocalDateUtc(value);
-            else
+            try
             {
-                throw new NotImplementedException("Only a TimeZone set to Local works for the moment.");
-            }
-            _internalSet = true;
-            SelectedDateTime = dateTime;
-            if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local))
-            {
-                if (dateTime.Kind == DateTimeKind.Utc)
-                    IsSummerPeriod = TimeZone.IsDaylightSavingTime(dateTime.ToLocalTime());
+                if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local) && _lastSetDateTimeKind == DateTimeKind.Local)
+                    dateTime = ComputeDateTimeTimeZoneLocalDateLocal(value);
+                else if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local) && _lastSetDateTimeKind == DateTimeKind.Utc)
+                    dateTime = ComputeDateTimeTimeZoneLocalDateUtc(value);
                 else
-                    IsSummerPeriod = TimeZone.IsDaylightSavingTime(dateTime);
+                {
+                    throw new NotImplementedException("Only a TimeZone set to Local works for the moment.");
+                }
+
+                SelectedDateTime = dateTime;
+                if (TimeZone != null && Equals(TimeZone, TimeZoneInfo.Local))
+                {
+                    if (dateTime.Kind == DateTimeKind.Utc)
+                        IsSummerPeriod = TimeZone.IsDaylightSavingTime(dateTime.ToLocalTime());
+                    else
+                        IsSummerPeriod = TimeZone.IsDaylightSavingTime(dateTime);
+                }
+
             }
-            _internalSet = false;
+            finally
+            {
+                _internalSetIsSummerPeriod = false;
+                _internalSetDateTime = false;
+            }
         }
 
         private DateTime ComputeDateTimeTimeZoneLocalDateLocal(TimeSpan value)
@@ -146,6 +157,14 @@ namespace CnDTimeControls
             return CurrentDate.Add(value);
         }
 
+        protected virtual DateTime ComputeNewDate(DateTime value)
+        {
+            if (Equals(TimeZone, TimeZoneInfo.Local))
+                return value.ToLocalTime().Date;
+            
+            throw new NotImplementedException("Other timezones than Local haven't been implemented yet.");
+        }
+
         #region Dependency properties
 
         #region CurrentDate dependency property
@@ -174,13 +193,16 @@ namespace CnDTimeControls
             var ctrl = (CnDTimeInput)d;
             var dateTime = (DateTime)e.NewValue;
 
+            if (ctrl._partTime == null)
+                return;
+            
             if (dateTime == DateTime.MinValue || dateTime == DateTime.MaxValue)
             {
                 ctrl._partTime.MaskProvider.Set(ctrl._partTime.Mask.DefaultValue);
                 return;
             }
 
-            if (ctrl._partTime != null && !ctrl._internalSet)
+            if (ctrl._partTime != null && !ctrl._internalSetDateTime)
             {
                 if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local))
                 {
@@ -190,12 +212,10 @@ namespace CnDTimeControls
                     else
                         localTime = dateTime.ToLocalTime();
 
-                    ctrl.CurrentDate = localTime.Date;
                     ctrl._partTime.SelectedTime = localTime.TimeOfDay;
                 }
                 else
                 {
-                    ctrl.CurrentDate = dateTime.Date;
                     ctrl._partTime.SelectedTime = dateTime.TimeOfDay;
                 }
             }
@@ -208,19 +228,42 @@ namespace CnDTimeControls
 
             var newValue = (DateTime)baseValue;
             var ctrl = (CnDTimeInput)d;
-            if (!ctrl._internalSet)
+            if (!ctrl._internalSetDateTime)
             {
 
                 if (newValue.Kind == DateTimeKind.Unspecified && newValue != DateTime.MinValue && newValue != DateTime.MaxValue)
                     throw new ArgumentException("DateTimeKind must be Local or Utc");
 
                 ctrl._lastSetDateTimeKind = newValue.Kind;
-                ctrl.CurrentDate = newValue.Date;
 
-                if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Utc)
-                    ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue.ToLocalTime());
-                if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) && newValue.Kind == DateTimeKind.Local)
-                    ctrl.IsSummerPeriod = ctrl.TimeZone.IsDaylightSavingTime(newValue);
+                if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) &&
+                    newValue.Kind == DateTimeKind.Utc)
+                {
+                    ctrl.CurrentDate = ctrl.ComputeNewDate(newValue);
+                    var bln = ctrl.TimeZone.IsDaylightSavingTime(newValue.ToLocalTime());
+                    ctrl._internalSetIsSummerPeriod = true;
+                    ctrl.IsSummerPeriod = bln;
+                    //Workaround for people who bind IsSummerPeriod property
+                    Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Send, new Action<bool>(b =>
+                    {
+                        ctrl.IsSummerPeriod = b;
+                        ctrl._internalSetIsSummerPeriod = false;
+                    }), bln);
+                }
+                if (ctrl.TimeZone != null && Equals(ctrl.TimeZone, TimeZoneInfo.Local) &&
+                    newValue.Kind == DateTimeKind.Local)
+                {
+                    ctrl.CurrentDate = ctrl.ComputeNewDate(newValue);
+                    var bln = ctrl.TimeZone.IsDaylightSavingTime(newValue);
+                    ctrl._internalSetIsSummerPeriod = true;
+                    ctrl.IsSummerPeriod = bln;
+                    //Workaround for people who bind IsSummerPeriod property
+                    Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Send, new Action<bool>(b =>
+                    {
+                        ctrl.IsSummerPeriod = b;
+                        ctrl._internalSetIsSummerPeriod = false;
+                    }), bln);
+                }
             }
 
             return baseValue;
@@ -294,7 +337,7 @@ namespace CnDTimeControls
         private static object OnCoerceIsSummerPeriod(DependencyObject d, object basevalue)
         {
             var ctrl = (CnDTimeInput)d;
-            if ((ctrl.SelectedDateTime == DateTime.MinValue || ctrl.SelectedDateTime == DateTime.MaxValue) && !ctrl._internalSet)
+            if ((ctrl.SelectedDateTime == DateTime.MinValue || ctrl.SelectedDateTime == DateTime.MaxValue) && !ctrl._internalSetDateTime)
                 return ctrl.IsSummerPeriod;
 
             return basevalue;
@@ -303,7 +346,7 @@ namespace CnDTimeControls
         private static void OnIsSummerPeriodChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var ctrl = (CnDTimeInput)d;
-            if (ctrl._partTime != null && !ctrl._internalSet)
+            if (ctrl._partTime != null && !ctrl._internalSetDateTime)
                 ctrl.OnTimeChanged(ctrl._partTime.SelectedTime);
         }
 
