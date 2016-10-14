@@ -3,29 +3,30 @@
                     xmlns:cnDTimeControls="clr-namespace:CnDTimeControls"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:converters="clr-namespace:CnDTimeControls.Converters"
                     mc:Ignorable="d"
                     >
+    <converters:TimeBandItemLocationConverter x:Key="BandItemLocationConverter" />
     <Style TargetType="cnDTimeControls:CnDTimeLine">
         <Style.Setters>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="cnDTimeControls:CnDTimeLine">
                         <Grid Background="{TemplateBinding Background}">
-                            <!--<ItemsControl Background="{TemplateBinding Background}" />-->
                             <ItemsControl ItemsSource="{TemplateBinding TimeBand}" Foreground="{TemplateBinding Foreground}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                            <Canvas />
+                                        <Canvas IsItemsHost="True" />
                                     </ItemsPanelTemplate>                                    
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemContainerStyle>
-                                    <Style>
-                                        <Setter Property="Canvas.Left" Value="{Binding Left}" d:DataContext="{d:DesignInstance cnDTimeControls:TimeBandItem}"/>
+                                    <Style TargetType="{x:Type ContentPresenter}">
+                                        <Setter Property="Canvas.Left" Value="{Binding Left}" />
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type cnDTimeControls:TimeBandItem}">
-                                        <StackPanel>
+                                        <StackPanel Margin="{Binding RelativeSource={RelativeSource Self}, Path=ActualWidth, Converter={StaticResource BandItemLocationConverter}, Mode=OneWay}">
                                             <Rectangle Fill="Black" Height="10" Width="2" HorizontalAlignment="Center" />
                                             <TextBlock Text="{Binding DateTime, StringFormat='{}{0:T}'}" Margin="0,2,0,0"/>
                                         </StackPanel>
