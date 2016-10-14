@@ -6,8 +6,8 @@
         mc:Ignorable="d"
         xmlns:local="clr-namespace:CnDTimeLineSample"
         xmlns:lib="clr-namespace:CnDTimeControls;assembly=CnDTimeControls"
-        Title="MainWindow" Height="350" Width="525" x:Name="Window"
-        d:DataContext="{d:DesignInstance {x:Type local:VM}}">
+        Title="MainWindow" Height="350" Width="1016" x:Name="Window"
+        d:DataContext="{d:DesignInstance {x:Type local:VM}, IsDesignTimeCreatable=True}">
     <Window.Resources>
         <local:TimeConverter x:Key="converter" />
         <local:TimeUtcConverter x:Key="utcConverter" />
