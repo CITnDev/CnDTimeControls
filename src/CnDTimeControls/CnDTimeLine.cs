@@ -16,11 +16,47 @@ namespace CnDTimeControls
 
     public class CnDTimeLine : Control
     {
+        private volatile bool _timelineMoving = false;
         static CnDTimeLine()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(CnDTimeLine), new FrameworkPropertyMetadata(typeof(CnDTimeLine)));
         }
 
+
+        public CnDTimeLine()
+        {
+            Loaded += CnDTimeLine_Loaded;
+            Unloaded += CnDTimeLine_Unloaded;
+        }
+
+        private void CnDTimeLine_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (_timelineMoving)
+                StopMoveTask();
+            this.RemoveHandler(UIElement.MouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
+            this.RemoveHandler(UIElement.MouseMoveEvent, new MouseEventHandler(OnMouseMove));
+        }
+
+        private void CnDTimeLine_Loaded(object sender, RoutedEventArgs e)
+        {
+            EventManager.RegisterClassHandler(typeof(UIElement), UIElement.MouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
+            EventManager.RegisterClassHandler(typeof(UIElement), UIElement.MouseMoveEvent, new MouseEventHandler(OnMouseMove));
+        }
+
+        private void OnMouseUp(object sender, MouseButtonEventArgs args)
+        {
+            if (_timelineMoving)
+                StopMoveTask();
+            _timelineMoving = false;
+        }
+
+        private void OnMouseMove(object sender, MouseEventArgs args)
+        {
+            if (_timelineMoving && args.LeftButton == MouseButtonState.Pressed)
+            {
+                _currentMousePosition = args.GetPosition(this);
+            }
+        }
 
         #region Dependency property
 
@@ -101,6 +137,7 @@ namespace CnDTimeControls
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             _currentMousePosition = Mouse.GetPosition(this);
+            _timelineMoving = true;
             lock (this)
             {
                 if (_moveTask != null)
@@ -116,29 +153,6 @@ namespace CnDTimeControls
             }
 
             base.OnMouseLeftButtonDown(e);
-        }
-
-        protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
-        {
-            StopMoveTask();
-
-            base.OnMouseLeftButtonUp(e);
-        }
-
-        protected override void OnMouseLeave(MouseEventArgs e)
-        {
-            StopMoveTask();
-            base.OnMouseLeave(e); 
-        }
-
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                _currentMousePosition = Mouse.GetPosition(this);
-            }
-
-            base.OnMouseMove(e);
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
