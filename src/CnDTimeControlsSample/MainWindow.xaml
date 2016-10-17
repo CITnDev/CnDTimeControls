@@ -27,7 +27,7 @@
                 <TextBlock>UTC time</TextBlock>
                 <TextBlock Margin="10,0" Text="{Binding MyDate, Mode=OneWay, Converter={StaticResource utcConverter}}" />
             </StackPanel>
-            <lib:CnDTimeLine Background="Red" CurrentTime="{Binding MyDate}" />
+            <lib:CnDTimeLine Background="Red" CurrentTime="{Binding MyDate}" Mode="{x:Static lib:CndTimeLineBehaviorType.Draging}"/>
         </StackPanel>        
     </Grid>
 </Window>
