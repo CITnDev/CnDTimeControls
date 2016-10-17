@@ -5,56 +5,43 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using CnDTimeControls.Annotations;
-using Control = System.Windows.Controls.Control;
-using MouseEventArgs = System.Windows.Input.MouseEventArgs;
+// ReSharper disable CompareOfFloatsByEqualityOperator
 
 namespace CnDTimeControls
 {
-
-
     public class CnDTimeLine : Control
     {
-        private volatile bool _timelineMoving = false;
         static CnDTimeLine()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(CnDTimeLine), new FrameworkPropertyMetadata(typeof(CnDTimeLine)));
         }
 
-
         public CnDTimeLine()
         {
+            _cnDTimeLineBehavior = new CnDTimeLineSpeedBehavior();
             Loaded += CnDTimeLine_Loaded;
             Unloaded += CnDTimeLine_Unloaded;
         }
 
-        private void CnDTimeLine_Unloaded(object sender, RoutedEventArgs e)
-        {
-            if (_timelineMoving)
-                StopMoveTask();
-            this.RemoveHandler(UIElement.MouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
-            this.RemoveHandler(UIElement.MouseMoveEvent, new MouseEventHandler(OnMouseMove));
-        }
 
-        private void CnDTimeLine_Loaded(object sender, RoutedEventArgs e)
+        public CndTimeLineBehaviorType Mode
         {
-            EventManager.RegisterClassHandler(typeof(UIElement), UIElement.MouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
-            EventManager.RegisterClassHandler(typeof(UIElement), UIElement.MouseMoveEvent, new MouseEventHandler(OnMouseMove));
-        }
-
-        private void OnMouseUp(object sender, MouseButtonEventArgs args)
-        {
-            if (_timelineMoving)
-                StopMoveTask();
-            _timelineMoving = false;
-        }
-
-        private void OnMouseMove(object sender, MouseEventArgs args)
-        {
-            if (_timelineMoving && args.LeftButton == MouseButtonState.Pressed)
+            get
             {
-                _currentMousePosition = args.GetPosition(this);
+                if (_cnDTimeLineBehavior is CnDTimeLineSpeedBehavior)
+                    return CndTimeLineBehaviorType.Speed;
+
+                return CndTimeLineBehaviorType.Draging;
+            }
+            set
+            {
+                if (value == CndTimeLineBehaviorType.Speed)
+                    _cnDTimeLineBehavior = new CnDTimeLineSpeedBehavior();
+                else
+                    _cnDTimeLineBehavior = new CnDTimeLineDragBehavior();
             }
         }
 
@@ -70,18 +57,11 @@ namespace CnDTimeControls
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public List<TimeBandItem> TimeBand
         {
-            get
-            {
-                return ((List<TimeBandItem>)(GetValue(TimeBandProperty)));
-            }
-            set
-            {
-                SetValue(TimeBandProperty, value);
-            }
+            get { return (List<TimeBandItem>) GetValue(TimeBandProperty); }
+            set { SetValue(TimeBandProperty, value); }
         }
 
         #endregion
-
 
         #region CurrentTime
 
@@ -89,7 +69,7 @@ namespace CnDTimeControls
 
         private static void OnCurrentTimeChange(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var ctrl = (CnDTimeLine)d;
+            var ctrl = (CnDTimeLine) d;
             if (!ctrl._internalSet)
             {
                 var newTime = (DateTime) e.NewValue;
@@ -104,14 +84,8 @@ namespace CnDTimeControls
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public DateTime CurrentTime
         {
-            get
-            {
-                return ((DateTime)(GetValue(CurrentTimeProperty)));
-            }
-            set
-            {
-                SetValue(CurrentTimeProperty, value);
-            }
+            get { return (DateTime) GetValue(CurrentTimeProperty); }
+            set { SetValue(CurrentTimeProperty, value); }
         }
 
         #endregion
@@ -126,9 +100,14 @@ namespace CnDTimeControls
         private const long DefaultTimeBandItemDurationInSeconds = 1;
         private const int DelayRefreshInMs = 40;
         private Point _currentMousePosition;
+        private DateTime _previousTime;
         private List<TimeBandItem> _timeBandItems = new List<TimeBandItem>();
-        private volatile bool _internalSet = false;
+        private volatile bool _internalSet;
         private DateTime _currentTime;
+        private ICnDTimeLineBehavior _cnDTimeLineBehavior;
+        private volatile bool _timelineMoving;
+        private DateTime _startTimeRange;
+        private DateTime _endTimeRange;
 
         #endregion
 
@@ -137,6 +116,7 @@ namespace CnDTimeControls
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             _currentMousePosition = Mouse.GetPosition(this);
+            _previousTime = Position2Time(_currentMousePosition);
             _timelineMoving = true;
             lock (this)
             {
@@ -165,86 +145,50 @@ namespace CnDTimeControls
 
         #region Private methods
 
+        private DateTime Position2Time(Point mousePosition)
+        {
+            var timeLineDuration = _endTimeRange.Subtract(_startTimeRange).TotalSeconds;
+            return _startTimeRange.AddSeconds(mousePosition.X * timeLineDuration/ ActualWidth);
+        }
+
         private void MoveTimeline()
         {
             while (!_tokenSource.IsCancellationRequested)
             {
-                var ratio = GetRatio();
-                ShiftTimeBand((ratio * DelayRefreshInMs)/1000);
+                var clickTime = Position2Time(_currentMousePosition);
+                
+                ShiftTimeBand(_cnDTimeLineBehavior.GetTimeShifting(_startTimeRange, _endTimeRange, _previousTime, clickTime, DelayRefreshInMs));
+                _previousTime = _currentTime;
 
                 Thread.Sleep(DelayRefreshInMs);
             }
         }
 
-        private double GetRatio()
-        {
-            double ratio = 0;
-
-            var mousePosition = _currentMousePosition;
-            var middle = ActualWidth / 2;
-            if (mousePosition.X < middle)
-            {
-                // Move backward
-                ratio = mousePosition.X/middle;
-
-                if (ratio >= 0.75)
-                {
-                    // Less or equals to x1
-                    ratio = -Math.Abs(ratio - 1);
-                }
-                else
-                {
-                    // Greater than x1
-                    ratio = -((Math.Abs(ratio - 0.75)*19/0.75) + 1);
-                }
-            }
-            else if (mousePosition.X > middle)
-            {
-                // Move forward
-                ratio = (mousePosition.X - middle)/middle;
-
-                if (ratio <= 0.25)
-                {
-                    // Less or equals to x1
-                    ratio = ratio*4; // equals to ratio / 0.25
-                }
-                else
-                {
-                    // Greater than x1
-                    ratio = (ratio - 0.25)*19 + 1;
-                }
-            }
-
-            return ratio;
-        }
-
         private void BuildTimeBandData(DateTime newTime)
         {
-            if (newTime == DateTime.MinValue || newTime == DateTime.MaxValue)
+            if ((newTime == DateTime.MinValue) || (newTime == DateTime.MaxValue))
                 return;
 
             if (double.IsNaN(ActualWidth))
                 return;
 
-            DateTime startTimeRange;
-            DateTime endTimeRange;
-            GetTimeLineBounds(newTime, out startTimeRange, out endTimeRange);
+            GetTimeLineBounds(newTime, out _startTimeRange, out _endTimeRange);
             var items = new List<TimeBandItem>();
 
             // Compute the first visible item
             var itemTime =
-                startTimeRange.AddTicks(-startTimeRange.Ticks % (10000000 * DefaultTimeBandItemDurationInSeconds))
+                _startTimeRange.AddTicks(-_startTimeRange.Ticks%(10000000*DefaultTimeBandItemDurationInSeconds))
                     .AddSeconds(DefaultTimeBandItemDurationInSeconds); //TimeBandItem duration round            
 
-            for (; itemTime < endTimeRange; itemTime = itemTime.AddSeconds(DefaultTimeBandItemDurationInSeconds))
+            for (; itemTime < _endTimeRange; itemTime = itemTime.AddSeconds(DefaultTimeBandItemDurationInSeconds))
             {
-                var leftOffset = itemTime.Subtract(startTimeRange).TotalSeconds * DefaultTimeBandItemWidth /
-                             DefaultTimeBandItemDurationInSeconds;
+                var leftOffset = itemTime.Subtract(_startTimeRange).TotalSeconds*DefaultTimeBandItemWidth/
+                                 DefaultTimeBandItemDurationInSeconds;
 
                 var item = new TimeBandItem
                 {
                     DateTime = itemTime,
-                    Left = leftOffset,
+                    Left = leftOffset
                 };
 
                 items.Add(item);
@@ -259,7 +203,7 @@ namespace CnDTimeControls
 
         private void GetTimeLineBounds(DateTime newTime, out DateTime startTimeRange, out DateTime endTimeRange)
         {
-            var mediumTimeRange = (ActualWidth*DefaultTimeBandItemDurationInSeconds)/(DefaultTimeBandItemWidth*2);
+            var mediumTimeRange = ActualWidth*DefaultTimeBandItemDurationInSeconds/(DefaultTimeBandItemWidth*2);
             startTimeRange = newTime.AddSeconds(-mediumTimeRange);
             endTimeRange = newTime.AddSeconds(mediumTimeRange);
         }
@@ -268,30 +212,20 @@ namespace CnDTimeControls
         {
             _internalSet = true;
             _currentTime = _currentTime.AddSeconds(timeShiftInSeconds);
-            Dispatcher.Invoke(() =>
-            {
-                CurrentTime = _currentTime;
-            }
-                );
+            Dispatcher.Invoke(() => { CurrentTime = _currentTime; }
+            );
             _internalSet = false;
-            
+
             if (_timeBandItems.Count == 0)
                 return;
 
 
-            var visualOffset = - (timeShiftInSeconds*DefaultTimeBandItemWidth/DefaultTimeBandItemDurationInSeconds);
-            if ((_timeBandItems[0].Left + visualOffset) < 0 || _timeBandItems[_timeBandItems.Count - 1].Left + visualOffset > ActualWidth)
-            {
-                //Out of range drawing
+            var visualOffset = -(timeShiftInSeconds*DefaultTimeBandItemWidth/DefaultTimeBandItemDurationInSeconds);
+            if ((_timeBandItems[0].Left + visualOffset < 0) || (_timeBandItems[_timeBandItems.Count - 1].Left + visualOffset > ActualWidth))
                 BuildTimeBandData(_currentTime);
-            }
             else
-            {
                 foreach (var item in _timeBandItems)
-                {                    
                     item.Left += visualOffset;
-                }
-            }
         }
 
         private void StopMoveTask()
@@ -307,33 +241,96 @@ namespace CnDTimeControls
             }
         }
 
-        #endregion
 
-    }
-
-    public class TimeBandItem : INotifyPropertyChanged
-    {
-
-        #region DateTime
-
-        private DateTime? _dateTime;
-        private double _left;
-
-        public DateTime? DateTime
+        private void CnDTimeLine_Unloaded(object sender, RoutedEventArgs e)
         {
-            get { return _dateTime; }
-            set
-            {
-                if (_dateTime != value)
-                {
-                    _dateTime = value;
-                    OnPropertyChanged();
-                }
-            }
+            if (_timelineMoving)
+                StopMoveTask();
+            RemoveHandler(MouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
+            RemoveHandler(MouseMoveEvent, new MouseEventHandler(OnMouseMove));
+        }
+
+        private void CnDTimeLine_Loaded(object sender, RoutedEventArgs e)
+        {
+            EventManager.RegisterClassHandler(typeof(UIElement), MouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
+            EventManager.RegisterClassHandler(typeof(UIElement), MouseMoveEvent, new MouseEventHandler(OnMouseMove));
+        }
+
+        private void OnMouseUp(object sender, MouseButtonEventArgs args)
+        {
+            if (_timelineMoving)
+                StopMoveTask();
+            _timelineMoving = false;
+        }
+
+        private void OnMouseMove(object sender, MouseEventArgs args)
+        {
+            if (_timelineMoving && (args.LeftButton == MouseButtonState.Pressed))
+                _currentMousePosition = args.GetPosition(this);
         }
 
         #endregion
+    }
 
+    public enum CndTimeLineBehaviorType
+    {
+        Speed,
+        Draging,
+    }
+
+    internal interface ICnDTimeLineBehavior
+    {
+        double GetTimeShifting(DateTime startTime, DateTime endTime, DateTime previousTime, DateTime currentTime, int delayRefreshInMs);
+    }
+
+    internal class CnDTimeLineSpeedBehavior : ICnDTimeLineBehavior
+    {
+        public double GetTimeShifting(DateTime startTime, DateTime endTime, DateTime previousTime, DateTime currentTime, int delayRefreshInMs)
+        {
+            return GetRatio(currentTime.Subtract(startTime).TotalSeconds, endTime.Subtract(startTime).TotalSeconds) *delayRefreshInMs/1000;
+        }
+
+        private double GetRatio(double position, double width)
+        {
+            double ratio = 0;
+
+            var middle = width/2;
+            if (position < middle)
+            {
+                // Move backward
+                ratio = position/middle;
+
+                if (ratio >= 0.75)
+                    ratio = -Math.Abs(ratio - 1);
+                else
+                    ratio = -(Math.Abs(ratio - 0.75)*19/0.75 + 1);
+            }
+            else if (position > middle)
+            {
+                // Move forward
+                ratio = (position - middle)/middle;
+
+                if (ratio <= 0.25)
+                    ratio = ratio*4; // equals to ratio / 0.25
+                else
+                    ratio = (ratio - 0.25)*19 + 1;
+            }
+
+            return ratio;
+        }
+    }
+
+    internal class CnDTimeLineDragBehavior : ICnDTimeLineBehavior
+    {
+        public double GetTimeShifting(DateTime startTime, DateTime endTime, DateTime previousTime, DateTime currentTime, int delayRefreshInMs)
+        {
+            return currentTime.Subtract(previousTime).TotalSeconds;
+        }
+    }
+
+
+    public sealed class TimeBandItem : INotifyPropertyChanged
+    {
         #region Left
 
         public double Left
@@ -354,10 +351,30 @@ namespace CnDTimeControls
         public event PropertyChangedEventHandler PropertyChanged;
 
         [NotifyPropertyChangedInvocator]
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-            PropertyChangedEventHandler handler = PropertyChanged;
+            var handler = PropertyChanged;
             if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        #region DateTime
+
+        private DateTime? _dateTime;
+        private double _left;
+
+        public DateTime? DateTime
+        {
+            get { return _dateTime; }
+            set
+            {
+                if (_dateTime != value)
+                {
+                    _dateTime = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        #endregion
     }
 }
