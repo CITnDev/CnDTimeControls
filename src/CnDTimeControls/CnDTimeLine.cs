@@ -21,6 +21,7 @@ namespace CnDTimeControls
 
         public CnDTimeLine()
         {
+            _pointDuration = DefaultTimeBandItemDurationInSeconds/DefaultTimeBandItemWidth;
             _cnDTimeLineBehavior = new CnDTimeLineSpeedBehavior();
             Loaded += CnDTimeLine_Loaded;
             Unloaded += CnDTimeLine_Unloaded;
@@ -94,13 +95,15 @@ namespace CnDTimeControls
 
         #region Private fields
 
+        private double _actualWidth;
         private Task _moveTask;
         private CancellationTokenSource _tokenSource;
-        private const int DefaultTimeBandItemWidth = 100;
+        private const double DefaultTimeBandItemWidth = 100;
         private const long DefaultTimeBandItemDurationInSeconds = 1;
         private const int DelayRefreshInMs = 40;
+        private readonly double _pointDuration;
         private Point _currentMousePosition;
-        private DateTime _previousTime;
+        private Point _previousPosition;
         private List<TimeBandItem> _timeBandItems = new List<TimeBandItem>();
         private volatile bool _internalSet;
         private DateTime _currentTime;
@@ -116,7 +119,7 @@ namespace CnDTimeControls
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             _currentMousePosition = Mouse.GetPosition(this);
-            _previousTime = Position2Time(_currentMousePosition);
+            _previousPosition = _currentMousePosition;
             _timelineMoving = true;
             lock (this)
             {
@@ -138,6 +141,7 @@ namespace CnDTimeControls
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
             base.OnRenderSizeChanged(sizeInfo);
+            _actualWidth = ActualWidth;
             BuildTimeBandData(CurrentTime);
         }
 
@@ -145,20 +149,18 @@ namespace CnDTimeControls
 
         #region Private methods
 
-        private DateTime Position2Time(Point mousePosition)
+        private TimeSpan Position2Time(double x)
         {
             var timeLineDuration = _endTimeRange.Subtract(_startTimeRange).TotalSeconds;
-            return _startTimeRange.AddSeconds(mousePosition.X * timeLineDuration/ ActualWidth);
+            return TimeSpan.FromSeconds(x * timeLineDuration/ ActualWidth);
         }
 
         private void MoveTimeline()
         {
             while (!_tokenSource.IsCancellationRequested)
             {
-                var clickTime = Position2Time(_currentMousePosition);
-                
-                ShiftTimeBand(_cnDTimeLineBehavior.GetTimeShifting(_startTimeRange, _endTimeRange, _previousTime, clickTime, DelayRefreshInMs));
-                _previousTime = _currentTime;
+                ShiftTimeBand(_cnDTimeLineBehavior.GetTimeShifting(_previousPosition.X, _currentMousePosition.X, _actualWidth, _pointDuration, DelayRefreshInMs));
+                _previousPosition = _currentMousePosition;
 
                 Thread.Sleep(DelayRefreshInMs);
             }
@@ -252,6 +254,8 @@ namespace CnDTimeControls
 
         private void CnDTimeLine_Loaded(object sender, RoutedEventArgs e)
         {
+            _actualWidth = ActualWidth;
+
             EventManager.RegisterClassHandler(typeof(UIElement), MouseUpEvent, new MouseButtonEventHandler(OnMouseUp));
             EventManager.RegisterClassHandler(typeof(UIElement), MouseMoveEvent, new MouseEventHandler(OnMouseMove));
         }
@@ -280,14 +284,14 @@ namespace CnDTimeControls
 
     internal interface ICnDTimeLineBehavior
     {
-        double GetTimeShifting(DateTime startTime, DateTime endTime, DateTime previousTime, DateTime currentTime, int delayRefreshInMs);
+        double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs);
     }
 
     internal class CnDTimeLineSpeedBehavior : ICnDTimeLineBehavior
     {
-        public double GetTimeShifting(DateTime startTime, DateTime endTime, DateTime previousTime, DateTime currentTime, int delayRefreshInMs)
+        public double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs)
         {
-            return GetRatio(currentTime.Subtract(startTime).TotalSeconds, endTime.Subtract(startTime).TotalSeconds) *delayRefreshInMs/1000;
+            return GetRatio(currentPosition, controlWidth) *delayRefreshInMs/1000;
         }
 
         private double GetRatio(double position, double width)
@@ -322,9 +326,9 @@ namespace CnDTimeControls
 
     internal class CnDTimeLineDragBehavior : ICnDTimeLineBehavior
     {
-        public double GetTimeShifting(DateTime startTime, DateTime endTime, DateTime previousTime, DateTime currentTime, int delayRefreshInMs)
+        public double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs)
         {
-            return currentTime.Subtract(previousTime).TotalSeconds;
+            return -(currentPosition - previousPosition) * pointDuration;
         }
     }
 
