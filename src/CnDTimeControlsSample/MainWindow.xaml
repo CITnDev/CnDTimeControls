@@ -6,6 +6,7 @@
         mc:Ignorable="d"
         xmlns:local="clr-namespace:CnDTimeLineSample"
         xmlns:lib="clr-namespace:CnDTimeControls;assembly=CnDTimeControls"
+        xmlns:timeline="clr-namespace:CnDTimeControls.Timeline;assembly=CnDTimeControls"
         Title="MainWindow" Height="350" Width="1016" x:Name="Window"
         d:DataContext="{d:DesignInstance {x:Type local:VM}, IsDesignTimeCreatable=True}">
     <Window.Resources>
@@ -27,7 +28,7 @@
                 <TextBlock>UTC time</TextBlock>
                 <TextBlock Margin="10,0" Text="{Binding MyDate, Mode=OneWay, Converter={StaticResource utcConverter}}" />
             </StackPanel>
-            <lib:CnDTimeLine Background="Red" CurrentTime="{Binding MyDate}" Mode="{x:Static lib:CndTimeLineBehaviorType.Draging}"/>
+            <lib:CnDTimeLine Background="Red" CurrentTime="{Binding MyDate}" Mode="{x:Static timeline:CndTimeLineBehaviorType.Draging}"/>
         </StackPanel>        
     </Grid>
 </Window>

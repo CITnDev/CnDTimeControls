@@ -4,6 +4,7 @@
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                     xmlns:converters="clr-namespace:CnDTimeControls.Converters"
+                    xmlns:timeline="clr-namespace:CnDTimeControls.Timeline"
                     mc:Ignorable="d"
                     >
     <converters:TimeBandItemLocationConverter x:Key="BandItemLocationConverter" />
@@ -25,7 +26,7 @@
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type cnDTimeControls:TimeBandItem}">
+                                    <DataTemplate DataType="{x:Type timeline:TimeBandItem}">
                                         <StackPanel Margin="{Binding RelativeSource={RelativeSource Self}, Path=ActualWidth, Converter={StaticResource BandItemLocationConverter}, Mode=OneWay}">
                                             <Rectangle Fill="Black" Height="10" Width="2" HorizontalAlignment="Center" />
                                             <TextBlock Text="{Binding DateTime, StringFormat='{}{0:T}'}" Margin="0,2,0,0"/>

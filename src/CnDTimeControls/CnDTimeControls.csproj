@@ -55,6 +55,7 @@
   <ItemGroup>
     <Compile Include="CnDTimeInput.cs" />
     <Compile Include="CnDTimeInputTextBox.cs" />
+    <Compile Include="Timeline\TimeBandItem.cs" />
     <Page Include="Themes\CnDTimeInput.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -70,7 +71,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CnDTimeLine.cs" />
+    <Compile Include="Timeline\CndTimeLineBehaviorType.cs" />
+    <Compile Include="Timeline\CnDTimeLineDragBehavior.cs" />
+    <Compile Include="Timeline\CnDTimeLineSpeedBehavior.cs" />
     <Compile Include="Converters\TimeBandItemLocationConverter.cs" />
+    <Compile Include="Timeline\ICnDTimeLineBehavior.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\Annotations1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

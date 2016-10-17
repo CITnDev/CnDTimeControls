@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using CnDTimeControls.Annotations;
+using CnDTimeControls.Timeline;
+
 // ReSharper disable CompareOfFloatsByEqualityOperator
 
 namespace CnDTimeControls
@@ -271,112 +271,6 @@ namespace CnDTimeControls
         {
             if (_timelineMoving && (args.LeftButton == MouseButtonState.Pressed))
                 _currentMousePosition = args.GetPosition(this);
-        }
-
-        #endregion
-    }
-
-    public enum CndTimeLineBehaviorType
-    {
-        Speed,
-        Draging,
-    }
-
-    internal interface ICnDTimeLineBehavior
-    {
-        double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs);
-    }
-
-    internal class CnDTimeLineSpeedBehavior : ICnDTimeLineBehavior
-    {
-        public double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs)
-        {
-            return GetRatio(currentPosition, controlWidth) *delayRefreshInMs/1000;
-        }
-
-        private double GetRatio(double position, double width)
-        {
-            double ratio = 0;
-
-            var middle = width/2;
-            if (position < middle)
-            {
-                // Move backward
-                ratio = position/middle;
-
-                if (ratio >= 0.75)
-                    ratio = -Math.Abs(ratio - 1);
-                else
-                    ratio = -(Math.Abs(ratio - 0.75)*19/0.75 + 1);
-            }
-            else if (position > middle)
-            {
-                // Move forward
-                ratio = (position - middle)/middle;
-
-                if (ratio <= 0.25)
-                    ratio = ratio*4; // equals to ratio / 0.25
-                else
-                    ratio = (ratio - 0.25)*19 + 1;
-            }
-
-            return ratio;
-        }
-    }
-
-    internal class CnDTimeLineDragBehavior : ICnDTimeLineBehavior
-    {
-        public double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs)
-        {
-            return -(currentPosition - previousPosition) * pointDuration;
-        }
-    }
-
-
-    public sealed class TimeBandItem : INotifyPropertyChanged
-    {
-        #region Left
-
-        public double Left
-        {
-            get { return _left; }
-            set
-            {
-                if (_left != value)
-                {
-                    _left = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        #endregion
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        [NotifyPropertyChangedInvocator]
-        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            var handler = PropertyChanged;
-            if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #region DateTime
-
-        private DateTime? _dateTime;
-        private double _left;
-
-        public DateTime? DateTime
-        {
-            get { return _dateTime; }
-            set
-            {
-                if (_dateTime != value)
-                {
-                    _dateTime = value;
-                    OnPropertyChanged();
-                }
-            }
         }
 
         #endregion
