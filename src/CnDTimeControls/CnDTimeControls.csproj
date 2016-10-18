@@ -75,7 +75,7 @@
     <Compile Include="Timeline\CnDTimeLineDragBehavior.cs" />
     <Compile Include="Timeline\CnDTimeLineSpeedBehavior.cs" />
     <Compile Include="Converters\TimeBandItemLocationConverter.cs" />
-    <Compile Include="Timeline\ICnDTimeLineBehavior.cs" />
+    <Compile Include="Timeline\CnDTimeLineBehaviorBase.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\Annotations1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

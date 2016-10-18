@@ -2,11 +2,16 @@
 
 namespace CnDTimeControls.Timeline
 {
-    internal class CnDTimeLineSpeedBehavior : ICnDTimeLineBehavior
+    internal class CnDTimeLineSpeedBehavior : CnDTimeLineBehaviorBase
     {
-        public double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs)
+        public CnDTimeLineSpeedBehavior(CnDTimeLine timeLine) : base(timeLine)
         {
-            return GetRatio(currentPosition, controlWidth) *delayRefreshInMs/1000;
+        }
+
+        public override double GetShifting()
+        {
+            var ratio = GetRatio(CurrentMousePosition.X, ControlWidth);
+            return ratio * CnDTimeLine.DelayRefreshInMs / (1000 * TimeLine.PointDuration);
         }
 
         private double GetRatio(double position, double width)
@@ -17,22 +22,22 @@ namespace CnDTimeControls.Timeline
             if (position < middle)
             {
                 // Move backward
-                ratio = position/middle;
+                ratio = position / middle;
 
                 if (ratio >= 0.75)
                     ratio = -Math.Abs(ratio - 1);
                 else
-                    ratio = -(Math.Abs(ratio - 0.75)*19/0.75 + 1);
+                    ratio = -(Math.Abs(ratio - 0.75) * 19 / 0.75 + 1);
             }
             else if (position > middle)
             {
                 // Move forward
-                ratio = (position - middle)/middle;
+                ratio = (position - middle) / middle;
 
                 if (ratio <= 0.25)
-                    ratio = ratio*4; // equals to ratio / 0.25
+                    ratio = ratio * 4; // equals to ratio / 0.25
                 else
-                    ratio = (ratio - 0.25)*19 + 1;
+                    ratio = (ratio - 0.25) * 19 + 1;
             }
 
             return ratio;

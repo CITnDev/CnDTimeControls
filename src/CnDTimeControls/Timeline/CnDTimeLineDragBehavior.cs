@@ -1,10 +1,16 @@
 ﻿namespace CnDTimeControls.Timeline
 {
-    internal class CnDTimeLineDragBehavior : ICnDTimeLineBehavior
+    internal class CnDTimeLineDragBehavior : CnDTimeLineBehaviorBase
     {
-        public double GetTimeShifting(double previousPosition, double currentPosition, double controlWidth, double pointDuration, int delayRefreshInMs)
+        public CnDTimeLineDragBehavior(CnDTimeLine timeLine) : base(timeLine)
         {
-            return -(currentPosition - previousPosition) * pointDuration;
+        }
+
+        public override double GetShifting()
+        {
+            var shift = -(CurrentMousePosition.X - PreviousPosition.X);
+            PreviousPosition = CurrentMousePosition;
+            return shift;
         }
     }
 }
