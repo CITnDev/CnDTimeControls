@@ -46,9 +46,7 @@ namespace CnDTimeControls
             if (_timelineMoving)
                 StopMoveTask();
         }
-
         #endregion
-
 
         public CndTimeLineBehaviorType Mode
         {
